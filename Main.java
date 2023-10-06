@@ -1,12 +1,8 @@
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
-
 import java.util.ArrayList;
 import java.util.List;
 
 
 record Book(int id, String title, String author, boolean isCheckedOut) {
-// Include an additional constructor for creating books with a default checkout status.
 public Book(int id, String title, String author) {
         this(id, title, author, false);
         }
