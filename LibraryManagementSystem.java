@@ -9,7 +9,7 @@ import java.util.Scanner;
 /*
       Fernando Isidro Mendez
       CRN: Software Development I CEN-3042C
-      Date: August 28,2023
+      Date: October 5,2023
       The function of the program represents an application for managing a library's collection of books.
       Users can list all existing books, add new books to the collection, and remove books.
       The book data is stored in a text file.
@@ -20,17 +20,18 @@ import java.util.Scanner;
       The 'Library' class handles book storage and management, while the 'Book' class defines
       the structure of an individual book.
 
+      Updated October 5,2023
+      Now I have implemented check-in and check out status. Also, the remove function was replaced with
+      the now remove by barcode section and remove by title name.
+
 */
 
 
 public class LibraryManagementSystem {
     public static void main(String[] args) {
         Library library = new Library();
-
-        // Load books from a text file
-        loadBooksFromFile(library);
-
         Scanner scanner = new Scanner(System.in);
+        loadBooksFromFile(library);
 
         /*
 
@@ -38,13 +39,15 @@ public class LibraryManagementSystem {
         to the user and will initiate the prompt with its corresponding case number
 
          */
-
         while (true) {
             System.out.println("\nLibrary Management System");
             System.out.println("1. List all books");
             System.out.println("2. Add a new book");
-            System.out.println("3. Remove a book");
-            System.out.println("4. Exit");
+            System.out.println("3. Remove Book by Barcode");
+            System.out.println("4. Remove Book by Title");
+            System.out.println("5. Check Out Book");
+            System.out.println("6. Check In Book");
+            System.out.println("7. Exit");
             System.out.print("Select an option: ");
             int choice = scanner.nextInt();
             scanner.nextLine();
@@ -64,35 +67,54 @@ public class LibraryManagementSystem {
             switch (choice) {
                 case 1 -> {
                     System.out.println("\nList of Books:");
-                    library.listBooks();
+                    library.getBooks().forEach(System.out::println);
                 }
                 case 2 -> {
-                    System.out.print("\nPlease enter book details (ID, Title, Author): ");
+                    System.out.print("\nEnter book details (ID, Title, Author): ");
                     String bookDetails = scanner.nextLine();
                     String[] parts = bookDetails.split(",");
                     if (parts.length == 3) {
-                        int id = Integer.parseInt(parts[0]);
-                        String title = parts[1];
-                        String author = parts[2];
+                        int id = Integer.parseInt(parts[0].trim());
+                        String title = parts[1].trim();
+                        String author = parts[2].trim();
                         library.addBook(new Book(id, title, author));
-                        writeBookToFile(new Book(id, title, author));
+                        writeBookToFile(new Book(id, title, author, false));
                         System.out.println("The book has been added successfully!");
                     } else {
                         System.out.println("Invalid input format.");
                     }
                 }
                 case 3 -> {
-                    System.out.print("\nPlease enter the ID of the book to remove: ");
-                    int idToRemove = scanner.nextInt();
-                    library.removeBook(idToRemove);
-                    System.out.println("The book has been removed successfully!");
+                    System.out.print("\nEnter Barcode of the Book to Remove: ");
+                    int barcodeToRemove = scanner.nextInt();
+                    scanner.nextLine(); // Consume newline character
+                    library.removeBookByBarcode(barcodeToRemove);
+                    System.out.println("Book with barcode " + barcodeToRemove + " removed.");
                 }
                 case 4 -> {
+                    System.out.print("\nEnter Title of the Book to Remove: ");
+                    String titleToRemove = scanner.nextLine();
+                    library.removeBookByTitle(titleToRemove);
+                    System.out.println("Book with title '" + titleToRemove + "' removed.");
+                }
+                case 5 -> {
+                    System.out.print("\nEnter Title of the Book to Check Out: ");
+                    String titleToCheckOut = scanner.nextLine();
+                    library.checkOutBook(titleToCheckOut);
+                    System.out.println("Book '" + titleToCheckOut + "' checked out.");
+                }
+                case 6 -> {
+                    System.out.print("\nEnter Title of the Book to Check In: ");
+                    String titleToCheckIn = scanner.nextLine();
+                    library.checkInBook(titleToCheckIn);
+                    System.out.println("Book '" + titleToCheckIn + "' checked in.");
+                }
+                case 7 -> {
                     System.out.println("Exiting Library Management System...");
                     scanner.close();
                     System.exit(0);
                 }
-                default -> System.out.println("Invalid choice. Please select a valid option from the list above...");
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
     }
@@ -101,35 +123,37 @@ public class LibraryManagementSystem {
     This method reads book information from a text file and populates the 'library' object and 'book' object.
 
  */
-    private static void loadBooksFromFile(Library library) {
-        try (BufferedReader reader = new BufferedReader(new FileReader("E:\\IntelliJ IDEA 2023.2.1\\Books.txt"))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 3) {
-                    int id = Integer.parseInt(parts[0]);
-                    String title = parts[1];
-                    String author = parts[2];
-                    library.addBook(new Book(id, title, author));
-                }
+private static void loadBooksFromFile(Library library) {
+    try (BufferedReader reader = new BufferedReader(new FileReader("E:\\IntelliJ IDEA 2023.2.1\\Books.txt"))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] parts = line.split(",");
+            if (parts.length == 4) {
+                int id = Integer.parseInt(parts[0].trim());
+                String title = parts[1].trim();
+                String author = parts[2].trim();
+                boolean isCheckedOut = parts[3].trim().equalsIgnoreCase("checked out");
+                library.addBook(new Book(id, title, author, isCheckedOut));
             }
-        } catch (IOException e) {
-            System.out.println("Error loading books from file: " + e.getMessage());
         }
+    } catch (IOException e) {
+        System.err.println("Error loading books from file: " + e.getMessage());
     }
+}
 
 /*
 
     This method writes the information populated by the user into the text file.
 
  */
-    private static void writeBookToFile(Book book) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("E:\\IntelliJ IDEA 2023.2.1\\Books.txt", true))) {
-            String bookInfo = book.id() + "," + book.title() + "," + book.author();
-            writer.write(bookInfo);
-            writer.newLine();
-        } catch (IOException e) {
-            System.out.println("Error writing book to file: " + e.getMessage());
-        }
+private static void writeBookToFile(Book book) {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter("E:\\IntelliJ IDEA 2023.2.1\\Books.txt", true))) {
+        String bookInfo = book.id() + "," + book.title() + "," + book.author() + "," +
+                (book.isCheckedOut() ? "checked out" : "available");
+        writer.write(bookInfo);
+        writer.newLine();
+    } catch (IOException e) {
+        System.err.println("Error writing book to file: " + e.getMessage());
     }
+}
 }
